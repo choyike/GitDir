@@ -10,11 +10,6 @@ import object.USER;
 
 public class connectDB {
 	Connection con;// 声明Connection对象
-	String driver;// 驱动程序名
-	String url;// URL指向要访问的数据库名mydata
-	String user;// MySQL配置时的用户名
-	String password;// MySQL配置时的密码
-	String sql;// 要执行的SQL语句
 	PreparedStatement preparedStatement;
 	ResultSet rs;// ResultSet类，用来存放获取的结果集
 
@@ -22,21 +17,17 @@ public class connectDB {
 	public connectDB() throws ClassNotFoundException, SQLException{
 		Class.forName("com.mysql.jdbc.Driver");
 		String url="jdbc:mysql://localhost:3306/qq?useSSL=true";
-		user = "root";
-		password = "zhangyijie";
+		String user = "root";
+		String password = "zhangyijie";
 		con = DriverManager.getConnection(url, user, password);
-		if (!con.isClosed())
-			System.out.println("数据库连接成功");
 	}
 	//连接数据库
 	public void run() throws ClassNotFoundException, SQLException {
 		Class.forName("com.mysql.jdbc.Driver");
 		String url="jdbc:mysql://localhost:3306/qq?useSSL=true";
-		user = "root";
-		password = "zhangyijie";
+		String user = "root";
+		String password = "zhangyijie";
 		con = DriverManager.getConnection(url, user, password); // 连接MySQL数据库
-		if (!con.isClosed())
-			System.out.println("Succeeded connecting to the Database!");
 	}
 	//停止数据库
 	public void stopDB() {

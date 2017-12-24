@@ -113,7 +113,7 @@ public class Server{
 			try {
 				while(true){
 					Socket socketClient = server.accept();
-					System.out.println("服务器接accept："+socketClient);
+					//System.out.println("服务器接accept："+socketClient);
 					BufferedReader in = new BufferedReader(new InputStreamReader(socketClient.getInputStream()));
 					String userName;
 					if(!(userName=in.readLine()).equals("")){
@@ -124,7 +124,7 @@ public class Server{
 							pw.flush();
 							continue;
 						}
-						System.out.println(userName);
+						//System.out.println(userName);
 						//数据库更新状态
 						db=new connectDB();
 						db.Userlog(userName);
@@ -171,6 +171,7 @@ public class Server{
 				start();
 			}
 
+			@SuppressWarnings("resource")
 			public void run(){
 				try {
 					Scanner sc = new Scanner(client.getInputStream());
@@ -185,6 +186,10 @@ public class Server{
 							usersMap.remove(msgs[1]);
 							//发该用户退出的消息发给其他在线用户
 							sendExitMsgToAll(msgs[1]);
+						}else if ("Head".equals(msgs[0])) {
+							resetHead(msgs[1],msgs[2]);
+						}else if ("Delete".equals(msgs[0])) {
+							DeletePhoto(msgs[1], msgs[2]);
 						}
 					}
 				} catch (IOException e) {
@@ -212,6 +217,20 @@ public class Server{
 					pw.println(str);
 					pw.flush();
 				}
+			}
+			private void resetHead(String username,String url) throws IOException {
+				Socket s = usersMap.get(username);
+				PrintWriter pw = new PrintWriter(s.getOutputStream(),true);
+				String str="Head@#"+url;
+				pw.println(str);
+				pw.flush();
+			}
+			private void DeletePhoto(String username,String url) throws IOException {
+				Socket s = usersMap.get(username);
+				PrintWriter pw = new PrintWriter(s.getOutputStream(),true);
+				String string="Delete@#"+url;
+				pw.println(string);
+				pw.flush();
 			}
 		}
 	}

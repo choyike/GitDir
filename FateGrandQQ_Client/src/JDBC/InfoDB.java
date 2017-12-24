@@ -170,14 +170,14 @@ public class InfoDB {
 		}
 		return false;
 	}
-	public void updataPic(int qq,String picUrl) throws SQLException {
+	public void updatePic(int qq,String picUrl) throws SQLException {
 		String sql="UPDATE data SET pic=? WHERE qq=?";
 		preparedStatement=con.prepareStatement(sql);
 		preparedStatement.setString(1, picUrl);
 		preparedStatement.setInt(2, qq);
 		preparedStatement.executeUpdate();
 	}
-	public void updataHead(int qq, String head) throws SQLException {
+	public void updateHead(int qq, String head) throws SQLException {
 		String sql="UPDATE info SET head=? WHERE qq=?";
 		preparedStatement=con.prepareStatement(sql);
 		preparedStatement.setString(1, head);
@@ -191,7 +191,7 @@ public class InfoDB {
 		preparedStatement.setInt(2, qq);
 		preparedStatement.executeUpdate();
 	}
-	public int hasPhoto(int qq) throws SQLException {
+	public int numPhoto(int qq) throws SQLException {
 		String sql="select url from photo where qq=?";
 		preparedStatement=con.prepareStatement(sql);
 		preparedStatement.setInt(1, qq);
@@ -202,6 +202,19 @@ public class InfoDB {
 		}
 		return i;
 	}
+	public boolean hasPhoto(int qq,String url) throws SQLException {
+		String sql="select url from photo where qq=?";
+		preparedStatement=con.prepareStatement(sql);
+		preparedStatement.setInt(1, qq);
+		rs=preparedStatement.executeQuery();
+		int i=1;
+		while (rs.next()) {
+			if (url==rs.getString(i))
+				return true;
+			i++;
+		}
+		return false;
+	}
 	public void updatePhoto(int qq,String url) throws SQLException {
 		String sql="insert into photo (qq, url) values(?,?)";
 		preparedStatement=con.prepareStatement(sql);
@@ -211,14 +224,22 @@ public class InfoDB {
 	}
 	public String[] getPhoto(int qq) throws SQLException {
 		String sql="select url from photo where qq=?";
-		String[] urls= {};
+		String[] urls=new String[6];
 		preparedStatement=con.prepareStatement(sql);
 		preparedStatement.setInt(1, qq);
 		rs=preparedStatement.executeQuery();
-		int i=1;
-		while(rs.next()) {
-			urls[i-1] = rs.getString(i);
+		int i=0;
+		while(rs.next()&&i<6) {
+			urls[i] = rs.getString(1);
+			i++;
 		}
 		return urls;
+	}
+	public void delPhoto(int qq,String url) throws SQLException {
+		String sql="delete from photo where qq=? and url=?";
+		preparedStatement=con.prepareStatement(sql);
+		preparedStatement.setInt(1,qq);
+		preparedStatement.setString(2, url);
+		preparedStatement.execute();
 	}
 }

@@ -301,7 +301,6 @@ public class Talk {
 		jscrollBar.setValue(jscrollBar.getMaximum());
 
 		String sendmes = "Talk@#" + my_user.name + "@#" + other_user.name + "@#" + str;
-		System.out.println("send_mes:"+sendmes);
 		pw.println(sendmes);
 		pw.flush();
 	}

@@ -4,6 +4,9 @@ import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.Socket;
 import java.sql.SQLException;
 
 import javax.swing.*;
@@ -13,7 +16,7 @@ import JDBC.InfoDB;
 import object.USER;
 
 public class data {
-	JFrame frame;
+	public JFrame frame;
 	JPanel panel=new JPanel(null);
 	JScrollPane jScrollPane;
 	JLabel close,lessen,head,pic,sign;
@@ -25,18 +28,22 @@ public class data {
 	JLabel comefrom;
 	JTextField name,ageField,comefromField;
 	JButton button=new JButton("保存");
-	JLabel photo,line,photoWall,updataPhoto;
+	JLabel photo,line,photoWall,updatePhoto;
 	JPanel left,right,photoPanel;
+	public JLabel MainPhoto;
+	public JLabel[] photos=new JLabel[6];
 	USER user;
 	InfoDB db=new InfoDB();
+	private PrintWriter pw;
 	
-	public data(USER user) throws ClassNotFoundException, SQLException {
+	public data(Socket client,int qqNum) throws ClassNotFoundException, SQLException {
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-		} catch (InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e1) {
+			pw=new PrintWriter(client.getOutputStream(), true);
+		} catch (InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException | IOException e1) {
 			e1.printStackTrace();
 		}
-		this.user = user;
+		user=new USER(qqNum);
 		frame=new JFrame();
 		frame.setLayout(null);
 		frame.setResizable(false);
@@ -51,7 +58,6 @@ public class data {
 		panel.add(left);
 		
 		right=new JPanel(null);
-		right.setPreferredSize(new Dimension(420, 1300));
 		right.setLocation(450, 30);
 		right.setBackground(Color.white);
 		
@@ -91,8 +97,8 @@ public class data {
 		pic.setBounds(0, 0,450,450);
 		if (db.hasPic(user.qq)) {
 			ImageIcon imageIcon = new ImageIcon(db.getPic(user.qq));
-			int rate=imageIcon.getIconHeight()/imageIcon.getIconWidth();
-			pic.setIcon(new ImageIcon(imageIcon.getImage().getScaledInstance(450,450*rate, Image.SCALE_SMOOTH)));
+			float rate=imageIcon.getIconHeight()/imageIcon.getIconWidth();
+			pic.setIcon(new ImageIcon(imageIcon.getImage().getScaledInstance(450,(int) (450*rate)+100, Image.SCALE_SMOOTH)));
 		}
 		pic.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 		pic.setToolTipText("点击可以替换图片");
@@ -110,10 +116,10 @@ public class data {
 				if (i==JFileChooser.OPEN_DIALOG) {
 					url=jFileChooser.getSelectedFile().getPath();
 					try {
-						db.updataPic(user.qq, url);
+						db.updatePic(user.qq, url);
 						ImageIcon imageIcon = new ImageIcon(db.getPic(user.qq));
-						int rate=imageIcon.getIconHeight()/imageIcon.getIconWidth();
-						pic.setIcon(new ImageIcon(imageIcon.getImage().getScaledInstance(450, 450*rate, Image.SCALE_SMOOTH)));
+						float rate=imageIcon.getIconHeight()/imageIcon.getIconWidth();
+						pic.setIcon(new ImageIcon(imageIcon.getImage().getScaledInstance(450, (int) (450*rate)+100, Image.SCALE_SMOOTH)));
 					} catch (SQLException e) {
 						e.printStackTrace();
 					}
@@ -143,10 +149,12 @@ public class data {
 					url2=jFileChooser.getSelectedFile().getPath();
 					url2=url2.substring(50);
 					try {
-						db.updataHead(user.qq, url2);
+						db.updateHead(user.qq, url2);
 						data.this.user=new USER(user.qq);
 						head.setIcon(new ImageIcon(new ImageIcon(data.this.user.head).getImage().getScaledInstance(75,75, Image.SCALE_SMOOTH)));
 						//需要在这里向服务器发送跟换了头像的消息
+						pw.println("Head@#"+user.name+"@#"+url2);
+						pw.flush();
 					} catch (SQLException e) {
 						e.printStackTrace();
 					}
@@ -253,25 +261,100 @@ public class data {
 		photoWall.setFont(new Font("微软雅黑", Font.BOLD, 18));
 		right.add(photoWall);
 		
-		updataPhoto=new JLabel("上传图片");
-		updataPhoto.setBounds(350, 240, 100, 25);
-		updataPhoto.setFont(new Font("微软雅黑", Font.PLAIN, 16));
-		updataPhoto.setForeground(new Color(120, 207, 252));
-		right.add(updataPhoto);
-		updataPhoto.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-		updataPhoto.addMouseListener(new MouseListener() {
+		updatePhoto=new JLabel("上传图片");
+		updatePhoto.setBounds(350, 240, 100, 25);
+		updatePhoto.setFont(new Font("微软雅黑", Font.PLAIN, 16));
+		updatePhoto.setForeground(new Color(120, 207, 252));
+		right.add(updatePhoto);
+		updatePhoto.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		updatePhoto.addMouseListener(new MouseListener() {
 			public void mouseReleased(MouseEvent arg0) {}
 			public void mousePressed(MouseEvent arg0) {}
 			public void mouseExited(MouseEvent arg0) {}
 			public void mouseEntered(MouseEvent arg0) {}
 			public void mouseClicked(MouseEvent arg0) {
-				
+				try {
+					updatePhoto();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
 			}
 		});
 		
-		photoPanel=new JPanel(new FlowLayout());
-		photoPanel.setBounds(30, 270, 380, 1000);
+		photoPanel=new JPanel();
+		photoPanel.setBackground(Color.white);
 		right.add(photoPanel);
+		if (db.numPhoto(user.qq)==0) {
+			MainPhoto=new JLabel(new ImageIcon("src/GUI/img/sys/noPhoto.jpg"));
+			photoPanel.add(MainPhoto,-1);
+			photoPanel.setBounds(30, 270, 382, MainPhoto.getIcon().getIconHeight()+100);
+			right.setPreferredSize(new Dimension(420, 500));
+		}else if (db.numPhoto(user.qq)==1) {
+			String[] urls=db.getPhoto(user.qq);
+			ImageIcon icon=new ImageIcon(urls[0]);
+			float rate=icon.getIconHeight()/icon.getIconWidth();
+			MainPhoto=new JLabel(new ImageIcon(icon.getImage().getScaledInstance(380,(int) (380*rate)+100, Image.SCALE_SMOOTH)));
+			if (icon.getIconHeight()>500) {
+				MainPhoto.setSize(380, 500);
+			}
+			photoPanel.add(MainPhoto,-1);
+			photoPanel.setBounds(30, 270, 382, 600);
+			right.setPreferredSize(new Dimension(420, 800));
+		}else if (db.numPhoto(user.qq)!=0 && db.numPhoto(user.qq)!=1) {
+			String[] urls=db.getPhoto(user.qq);
+			int num=db.numPhoto(user.qq);
+			ImageIcon[] icon=new ImageIcon[9];
+			float[] rate=new float[9];
+			for (int i = 0; i < urls.length; i++) {
+				icon[i]=new ImageIcon(urls[i]);
+				rate[i]=icon[i].getIconHeight()/icon[i].getIconWidth();
+			}
+			MainPhoto=new JLabel(new ImageIcon(icon[0].getImage().getScaledInstance(380,(int) (380*rate[0])+100, Image.SCALE_SMOOTH)));
+			MainPhoto.setName(urls[0]);
+			if (icon[0].getIconHeight()>500) {
+				MainPhoto.setSize(380, 500);
+			}
+			MainPhoto.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+			MainPhoto.addMouseListener(new MouseListener() {
+				public void mouseReleased(MouseEvent arg0) {}
+				public void mousePressed(MouseEvent arg0) {}
+				public void mouseExited(MouseEvent arg0) {
+					MainPhoto.setBorder(null);
+				}
+				public void mouseEntered(MouseEvent arg0) {
+					MainPhoto.setBorder(new LineBorder(Color.blue));
+				}
+				public void mouseClicked(MouseEvent arg0) {
+					new Photo(client,user, MainPhoto.getName());
+				}
+			});
+			photoPanel.add(MainPhoto);
+			
+			for (int i = 0; i < num-1; i++) {
+				photos[i]=new JLabel(new ImageIcon(icon[i+1].getImage().getScaledInstance(120,120, Image.SCALE_SMOOTH)));
+				photos[i].setName(urls[i+1]);
+				photos[i].setPreferredSize(new Dimension(120, 120));
+				photoPanel.add(photos[i], -1);
+				photos[i].setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+				photos[i].addMouseListener(new MouseListener() {
+					public void mouseReleased(MouseEvent e) {}
+					public void mousePressed(MouseEvent e) {}
+					public void mouseExited(MouseEvent e) {
+						((JLabel)e.getSource()).setBorder(null);
+					}
+					public void mouseEntered(MouseEvent e) {
+						((JLabel)e.getSource()).setBorder(new LineBorder(Color.blue));
+					}
+					public void mouseClicked(MouseEvent e) {
+						new Photo(client,user,((JLabel)e.getSource()).getName());
+					}
+				});
+			}
+			photoPanel.setBounds(30, 270, 382, 1000);
+			right.setPreferredSize(new Dimension(420, 1020));
+			
+		}
+		
 		
 		
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -396,13 +479,26 @@ public class data {
 		db.updateDay(user.qq, Integer.valueOf(day.getSelectedItem()));
 		db.updateComefrom(user.qq, comefromField.getText());
 	}
-	
-	public static void main(String args[]) {
-		try {
-			new data(new USER(10001));
-		} catch (ClassNotFoundException | SQLException e) {
-			e.printStackTrace();
+
+	public void updatePhoto() throws SQLException {
+		String url3="";
+		JFileChooser jFileChooser=new JFileChooser();
+		jFileChooser.setDialogTitle("建议不要选默认文件夹外的图片！！！！");
+		jFileChooser.setCurrentDirectory(new File("src/GUI/img/pic"));
+		int i = jFileChooser.showOpenDialog(null);
+		if (i==JFileChooser.OPEN_DIALOG) {
+			url3=jFileChooser.getSelectedFile().getPath();
+			if (db.numPhoto(user.qq)==0) {
+				db.updatePhoto(user.qq, url3);
+				ImageIcon icon=new ImageIcon(url3);
+				float rate=icon.getIconHeight()/icon.getIconWidth();
+				MainPhoto.setIcon(new ImageIcon(icon.getImage().getScaledInstance(380,(int) (380*rate)+100, Image.SCALE_SMOOTH)));
+			}else{
+				db.updatePhoto(user.qq, url3);
+				JOptionPane.showMessageDialog(JOptionPane.getRootFrame(), "请重新打开界面刷新", "系统信息",
+						JOptionPane.INFORMATION_MESSAGE);
+				frame.dispose();
+			}
 		}
 	}
-	
 }

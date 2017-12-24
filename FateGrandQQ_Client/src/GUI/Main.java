@@ -23,7 +23,8 @@ public class Main{
 	public JFrame frame;
 	JLabel title=new JLabel("Fate/Grand QQ");
 	JLabel bkLabel,close,lessen;
-	JLabel head,name,state;
+	public JLabel head;
+	JLabel name,state;
 	JTextArea qianming;
 	protected int xOld;
 	protected int yOld;
@@ -133,7 +134,8 @@ public class Main{
 			public void mouseEntered(MouseEvent e) {}
 			public void mouseClicked(MouseEvent e) {
 				try {
-					new data(user);
+					data data = new data(client,user.qq);
+					clientThread.setData(data);
 				} catch (ClassNotFoundException | SQLException e1) {
 					e1.printStackTrace();
 				}
@@ -335,9 +337,9 @@ public class Main{
 		Qun_Root=new FriTreeNode("我的QQ群");//显示的第一个列表
 		Qun_Top_Root.addchild(Qun_Root);
 
-		Qun_Root.addchild(new FriTreeNode());
-		Qun_Root.addchild(new FriTreeNode("测试群没有实现"));
-		Qun_Root.addchild(new FriTreeNode("测试群没有实现2"));
+		//Qun_Root.addchild(new FriTreeNode());
+		Qun_Root.addchild(new FriTreeNode("群功能没有写"));
+		//Qun_Root.addchild(new FriTreeNode("测试群没有实现2"));
 
 		qun_Model = new DefaultTreeModel(Qun_Top_Root);
 		Qun_tree = new JTree(qun_Model);

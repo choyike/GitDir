@@ -1,20 +1,25 @@
 package client;
 
+import java.awt.Image;
 import java.io.IOException;
 import java.net.Socket;
 import java.sql.SQLException;
 import java.util.Scanner;
 
+import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
 
 import GUI.Main;
 import GUI.Talk;
+import GUI.data;
 import JDBC.connectDB;
 
 public class ClientThread extends Thread {
 	Socket client;
 	Talk talk;
 	Main main;
+	data data;
+	
 	public ClientThread(Socket client){
 		this.client=client;
 	}
@@ -23,6 +28,9 @@ public class ClientThread extends Thread {
 	}
 	public void setMain(Main main) {
 		this.main=main;
+	}
+	public void setData(data data) {
+		this.data=data;
 	}
 	@SuppressWarnings("resource")
 	public void run() {
@@ -47,8 +55,23 @@ public class ClientThread extends Thread {
 				}
 				if ("Talk".equals(msgs[0])) {
 					if (talk.my_user.name.equals(msgs[2])) {// 信息获得人是自己
-						System.out.println("sender:::" + msgs);
 						talk.get_mes(msgs[1], msgs[2], msgs[3]);
+					}
+				}
+				if ("Head".equals(msgs[0])) {
+					main.head.setIcon(new ImageIcon(new ImageIcon("src/GUI/img/head/"+msgs[1]).getImage().getScaledInstance(79, 79, Image.SCALE_SMOOTH)));
+				}
+				if ("Delete".equals(msgs[0])) {
+					if (data.MainPhoto.getName().equals(msgs[1])) {
+						data.frame.dispose();
+						JOptionPane.showMessageDialog(JOptionPane.getRootFrame(), "请重新打开界面刷新", "系统信息",
+								JOptionPane.INFORMATION_MESSAGE);
+					}
+					for (int i = 0; i < data.photos.length; i++) {
+						if (data.photos[i].getName().equals(msgs[1])) {
+							data.photos[i].setVisible(false);
+							break;
+						}
 					}
 				}
 			}
